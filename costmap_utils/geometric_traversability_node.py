@@ -4,10 +4,13 @@ import traceback
 
 import numpy as np
 import rclpy
+import sensor_msgs_py.point_cloud2 as pc2
 import warp as wp
 from grid_map_msgs.msg import GridMap
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointField
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import MultiArrayDimension
 from std_msgs.msg import MultiArrayLayout
@@ -23,7 +26,7 @@ class GeometricTraversabilityNode(Node):
 
         # --- Parameters for Configuration ---
         self.declare_parameter("input_topic", "/elevation_mapping_node/elevation_map_filter")
-        self.declare_parameter("output_topic", "/traversability_map")
+        self.declare_parameter("output_topic", "/traversability_cloud")
         self.declare_parameter("input_layer", "inpaint")
         self.declare_parameter("use_cpu", False)
         self.declare_parameter("verbose", False)
@@ -52,8 +55,9 @@ class GeometricTraversabilityNode(Node):
         self.subscription = self.create_subscription(
             GridMap, self.input_topic, self.map_callback, 10
         )
+        # Change publisher to PointCloud2
         self.publisher = self.create_publisher(
-            GridMap, self.output_topic, qos_profile_system_default
+            PointCloud2, self.output_topic, qos_profile_system_default
         )
 
         self.analyzer = None  # Will be initialized on first message
@@ -106,35 +110,65 @@ class GeometricTraversabilityNode(Node):
             # --- 3. Restore NaNs in the final cost map ---
             traversability_cost_map[nan_mask] = np.nan
 
-            # --- 4. Prepare and Publish Output GridMap ---
-            output_msg = GridMap()
-            output_msg.header = msg.header
-            output_msg.header.stamp = self.get_clock().now().to_msg()
-            output_msg.info = msg.info  # Copy info directly
-
-            output_msg.layers = ["traversability"]
-            output_msg.basic_layers = ["traversability"]
-
-            # Flatten the cost map data back into column-major order for publishing
-            cost_flat = traversability_cost_map.ravel(order="F")
-
-            # Construct the Float32MultiArray for the data
-            layout = MultiArrayLayout(
-                dim=[
-                    MultiArrayDimension(label="column_index", size=cols, stride=rows * cols),
-                    MultiArrayDimension(label="row_index", size=rows, stride=rows),
-                ],
-                # The stride for row_index should be `rows`, not 1, for column-major data
-                data_offset=0,
+            # --- 4. Create point cloud from traversability and elevation data ---
+            points = self.create_point_cloud_data(
+                traversability_cost_map,
+                elevation_np,
+                msg.info.pose.position.x,
+                msg.info.pose.position.y,
+                resolution,
             )
-            data_msg = Float32MultiArray(layout=layout, data=cost_flat.tolist())
-            output_msg.data = [data_msg]
 
-            self.publisher.publish(output_msg)
+            # --- 5. Publish PointCloud2 message ---
+            cloud_msg = self.create_point_cloud_msg(points, msg.header.frame_id)
+            self.publisher.publish(cloud_msg)
 
         except Exception as e:
             self.get_logger().error(f"Error processing GridMap: {e}")
             traceback.print_exc()
+
+    def create_point_cloud_data(
+        self, traversability_map, elevation_map, origin_x, origin_y, resolution
+    ):
+        """Convert traversability and elevation data to point cloud points."""
+        rows, cols = traversability_map.shape
+        points = []
+
+        for i in range(rows):
+            for j in range(cols):
+                # Calculate world coordinates
+                x = origin_x + (j * resolution)
+                y = origin_y + (i * resolution)
+                z = elevation_map[i, j]
+                traversability = traversability_map[i, j]
+
+                # Skip NaN points
+                if not np.isnan(z) and not np.isnan(traversability):
+                    # Each point has x, y, z coordinates and traversability as intensity
+                    points.append([x, y, z, traversability])
+
+        return points
+
+    def create_point_cloud_msg(self, points, frame_id):
+        """Create a PointCloud2 message from point data."""
+        # Define fields for the point cloud
+        fields = [
+            PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
+            PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
+            PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
+            PointField(name="intensity", offset=12, datatype=PointField.FLOAT32, count=1),
+        ]
+
+        # Create PointCloud2 message
+        cloud_msg = pc2.create_cloud(
+            header=rclpy.time.Time().to_msg(), fields=fields, points=points
+        )
+
+        # Set the frame ID and timestamp
+        cloud_msg.header.frame_id = frame_id
+        cloud_msg.header.stamp = self.get_clock().now().to_msg()
+
+        return cloud_msg
 
     def _get_analyzer_params(self, msg: GridMap) -> dict:
         """Gathers parameters from the ROS parameter server."""
