@@ -22,9 +22,9 @@ class GeometricTraversabilityNode(Node):
         super().__init__("geometric_traversability_node")
 
         # --- Parameters for Configuration ---
-        self.declare_parameter("input_topic", "/elevation_mapping/elevation_map_raw")
+        self.declare_parameter("input_topic", "/elevation_mapping/elevation_map_filter")
         self.declare_parameter("output_topic", "/traversability_map")
-        self.declare_parameter("input_layer", "elevation")
+        self.declare_parameter("input_layer", "inpaint")
         self.declare_parameter("use_cpu", False)
         self.declare_parameter("verbose", False)
 
