@@ -151,22 +151,30 @@ class GeometricTraversabilityNode(Node):
 
     def create_point_cloud_msg(self, points, frame_id):
         """Create a PointCloud2 message from point data."""
+        # Create the PointCloud2 message
+        cloud_msg = PointCloud2()
+
+        # Set the header information
+        cloud_msg.header.stamp = self.get_clock().now().to_msg()
+        cloud_msg.header.frame_id = frame_id
+
         # Define fields for the point cloud
-        fields = [
+        cloud_msg.fields = [
             PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
             PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
             PointField(name="intensity", offset=12, datatype=PointField.FLOAT32, count=1),
         ]
 
-        # Create PointCloud2 message
-        cloud_msg = pc2.create_cloud(
-            header=rclpy.time.Time().to_msg(), fields=fields, points=points
-        )
+        # Set point cloud properties
+        cloud_msg.point_step = 16  # 4 fields * 4 bytes each
+        cloud_msg.height = 1
+        cloud_msg.width = len(points)
+        cloud_msg.row_step = cloud_msg.point_step * cloud_msg.width
+        cloud_msg.is_dense = False
 
-        # Set the frame ID and timestamp
-        cloud_msg.header.frame_id = frame_id
-        cloud_msg.header.stamp = self.get_clock().now().to_msg()
+        # Convert points to a byte array
+        cloud_msg.data = np.array(points, dtype=np.float32).tobytes()
 
         return cloud_msg
 
