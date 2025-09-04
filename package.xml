@@ -3,9 +3,14 @@
 <package format="3">
   <name>costmap_utils</name>
   <version>0.0.1</version>
-  <description>TODO: Package description</description>
+  <description>Cost Map Utilities for ROS2 Jazzy</description>
   <maintainer email="kuceral4@fel.cvut.cz">kuceral4</maintainer>
   <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>nav_msgs</depend>
+  <depend>grid_map_msgs</depend>
+  <depend>std_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
