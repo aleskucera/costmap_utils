@@ -30,7 +30,7 @@ def filter_grid(
     if total_count > 0:
         ratio = float(measured_count) / float(total_count)
 
-    # if ratio >= support_ratio:
-    #     filtered_cost[r, c] = cost_map[r, c]
-    # else:
-    #     filtered_cost[r, c] = float("nan")
+    if ratio >= support_ratio:
+        filtered_cost[r, c] = cost_map[r, c]
+    else:
+        filtered_cost[r, c] = float("nan")
