@@ -127,16 +127,18 @@ class GridMapFilter:
 
                     try:
                         # Get the transform from map to base_link
+                        # FIXED: Create time objects correctly for ROS2
+                        # Use the latest available transform by using an empty time
                         transform = self.tf_buffer.lookup_transform(
                             map_frame,  # target frame
                             base_link_frame,  # source frame
-                            rclpy.time.Time(0),  # get the latest available transform
+                            rclpy.time.Time(),  # Use default constructor for latest transform
                             rclpy.duration.Duration(seconds=0.1),  # timeout
                         )
 
                         # Store as last valid transform
                         self.last_valid_transform = transform
-                        self.last_transform_time = rclpy.time.Time.now()
+                        self.last_transform_time = rclpy.get_clock().now()  # Use the node's clock
 
                         if self.verbose:
                             print(
@@ -154,7 +156,7 @@ class GridMapFilter:
                         # Use last valid transform if it exists
                         transform = self.last_valid_transform
                         if transform is not None and self.verbose:
-                            print(f"Using last valid transform from {self.last_transform_time}")
+                            print(f"Using last valid transform")
 
                     # If we have a valid transform (either fresh or stored), use it
                     if transform is not None:
