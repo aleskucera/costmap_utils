@@ -194,7 +194,7 @@ class GeometricTraversabilityNode(Node):
             PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
             PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
-            PointField(name="intensity", offset=12, datatype=PointField.FLOAT32, count=1),
+            PointField(name="geometric_cost", offset=12, datatype=PointField.FLOAT32, count=1),
         ]
         cloud_msg.point_step = 16
         cloud_msg.height = 1
