@@ -93,10 +93,13 @@ class GeometricTraversabilityNode(Node):
 
             layer_idx = msg.layers.index(traversability_layer_name)
 
+            # --- FIXED: Reshape based on row-major ('C') order used by grid_map_msgs ---
+            # Removing order='F' makes it default to 'C' (row-major).
             inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
                 (rows, cols), order="C"
             )
 
+            # Prepare inpainted map for traversability analyzer (fill NaNs)
             nan_mask = np.isnan(inpainted_elevation_np)
             traversability_input_map = np.copy(inpainted_elevation_np)
             fill_value = np.nanmin(traversability_input_map) if not np.all(nan_mask) else 0.0
@@ -105,6 +108,7 @@ class GeometricTraversabilityNode(Node):
             # --- 2. Compute Traversability ---
             results = self.analyzer.compute_traversability(traversability_input_map)
             traversability_cost_map = results["traversability_cost"]
+            # Restore NaNs where the original inpainted map had them
             traversability_cost_map[nan_mask] = np.nan
 
             final_cost_map = traversability_cost_map
@@ -120,10 +124,12 @@ class GeometricTraversabilityNode(Node):
                     return
 
                 raw_layer_idx = msg.layers.index(raw_elevation_layer_name)
+                # --- FIXED: Use correct row-major ('C') order for this layer as well ---
                 raw_elevation_np = np.array(msg.data[raw_layer_idx].data, dtype=np.float32).reshape(
                     (rows, cols), order="C"
                 )
 
+                # Apply the filter
                 self.get_logger().debug("Applying reliability filter to the cost map.")
                 final_cost_map = self.filter.apply_filters(
                     raw_elevation_np, traversability_cost_map
@@ -158,15 +164,10 @@ class GeometricTraversabilityNode(Node):
 
         for i in range(rows):
             for j in range(cols):
-                # Correctly convert grid index (i, j) to world coordinates (x, y)
                 x = origin_x - half_length_x + (j + 0.5) * resolution
-
-                # --- FIXED: Corrected Y-axis calculation to fix mirroring ---
-                # Increasing row index 'i' moves along the map's -Y axis.
-                y = origin_y + half_length_y - (i + 0.5) * resolution
-
-                z = elevation_map[j, i]
-                traversability = traversability_map[j, i]
+                y = origin_y - half_length_y + (i + 0.5) * resolution
+                z = elevation_map[i, j]
+                traversability = traversability_map[i, j]
 
                 if not np.isnan(z) and not np.isnan(traversability):
                     points.append([x, y, z, traversability])
