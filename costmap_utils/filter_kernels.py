@@ -33,4 +33,4 @@ def filter_grid(
     if ratio >= support_ratio:
         filtered_cost[r, c] = cost_map[r, c]
     else:
-        filtered_cost[r, c] = float("nan")
+        filtered_cost[r, c] = 0.0 / 0.0  # NaN
