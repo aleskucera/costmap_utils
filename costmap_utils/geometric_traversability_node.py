@@ -134,17 +134,19 @@ class GeometricTraversabilityNode(Node):
         rows, cols = traversability_map.shape
         points = []
 
+        # Calculate half lengths for offsetting
+        half_length_x = (cols * resolution) / 2.0
+        half_length_y = (rows * resolution) / 2.0
+
         for i in range(rows):
             for j in range(cols):
-                # Calculate world coordinates
-                x = origin_x + (j * resolution)
-                y = origin_y + (i * resolution)
+                # World coordinates at cell centers, assuming i increases in +y, j in +x
+                x = origin_x - half_length_x + (j + 0.5) * resolution
+                y = origin_y - half_length_y + (i + 0.5) * resolution
                 z = elevation_map[i, j]
                 traversability = traversability_map[i, j]
 
-                # Skip NaN points
                 if not np.isnan(z) and not np.isnan(traversability):
-                    # Each point has x, y, z coordinates and traversability as intensity
                     points.append([x, y, z, traversability])
 
         return points
