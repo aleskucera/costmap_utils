@@ -10,9 +10,13 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import PointField
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 
 from .geometric_traversability_analyzer import GeometricTraversabilityAnalyzer
 from .grid_map_filter import GridMapFilter
+
+# Import TF2 modules
 
 
 class GeometricTraversabilityNode(Node):
@@ -44,7 +48,7 @@ class GeometricTraversabilityNode(Node):
         # Neighborhood parameters (in grid cells)
         self.declare_parameter("neighborhood.roughness_window_radius_cells", 2)
 
-        # --- Added parameters for the new GridMapFilter ---
+        # --- Added parameters for the GridMapFilter ---
         self.declare_parameter("filter.enabled", True)
         self.declare_parameter("filter.raw_elevation_layer", "elevation")
         self.declare_parameter("filter.support_radius_cells", 2)
@@ -52,10 +56,17 @@ class GeometricTraversabilityNode(Node):
 
         # --- Box filter parameters ---
         self.declare_parameter("filter.box_filter.enabled", True)
-        self.declare_parameter("filter.box_filter.center_x", 0.0)  # meters, in map frame
-        self.declare_parameter("filter.box_filter.center_y", 0.0)  # meters, in map frame
+        self.declare_parameter("filter.box_filter.use_tf", True)
+        self.declare_parameter("filter.box_filter.base_link_frame", "base_link")
+        self.declare_parameter("filter.box_filter.center_x", 0.0)  # meters, in map frame (fallback)
+        self.declare_parameter("filter.box_filter.center_y", 0.0)  # meters, in map frame (fallback)
         self.declare_parameter("filter.box_filter.size_x", 0.5)  # meters
         self.declare_parameter("filter.box_filter.size_y", 0.5)  # meters
+        self.declare_parameter("filter.box_filter.use_last_transform", True)  # Use last valid
+
+        # --- Set up TF listener ---
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
@@ -136,13 +147,16 @@ class GeometricTraversabilityNode(Node):
                     (rows, cols), order="C"
                 )
 
-                # Apply the filter
+                # Apply the filter with full map information
                 self.get_logger().debug("Applying reliability filter to the cost map.")
                 final_cost_map = self.filter.apply_filters(
                     raw_elevation_np,
                     traversability_cost_map,
-                    msg.info.pose.position.x,  # Pass map origin x
-                    msg.info.pose.position.y,  # Pass map origin y
+                    msg.header.frame_id,  # Map frame ID
+                    msg.info.pose.position.x,  # Map origin X
+                    msg.info.pose.position.y,  # Map origin Y
+                    msg.info.length_x,  # Map length X
+                    msg.info.length_y,  # Map length Y
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
@@ -239,6 +253,9 @@ class GeometricTraversabilityNode(Node):
             "support_ratio": self.get_parameter("filter.support_ratio").value,
             # Box filter parameters
             "box_filter_enabled": self.get_parameter("filter.box_filter.enabled").value,
+            "use_tf": self.get_parameter("filter.box_filter.use_tf").value,
+            "base_link_frame": self.get_parameter("filter.box_filter.base_link_frame").value,
+            "use_last_transform": self.get_parameter("filter.box_filter.use_last_transform").value,
             "box_center_x": self.get_parameter("filter.box_filter.center_x").value,
             "box_center_y": self.get_parameter("filter.box_filter.center_y").value,
             "box_size_x": self.get_parameter("filter.box_filter.size_x").value,
@@ -249,7 +266,7 @@ class GeometricTraversabilityNode(Node):
         """Initializes the GridMapFilter upon receiving the first message."""
         self.get_logger().info("First map received. Initializing GridMapFilter...")
         filter_params = self._get_filter_params(msg)
-        self.filter = GridMapFilter(**filter_params)
+        self.filter = GridMapFilter(tf_buffer=self.tf_buffer, **filter_params)
         self.get_logger().info(f"GridMapFilter initialized on device '{filter_params['device']}'.")
 
     def initialize_analyzer(self, msg: GridMap):
@@ -264,19 +281,3 @@ class GeometricTraversabilityNode(Node):
         self.get_logger().info(
             f"Analyzer initialized on device '{analyzer_params['device']}' for a {cols}x{rows} grid."
         )
-
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = GeometricTraversabilityNode()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-
-
-if __name__ == "__main__":
-    main()
