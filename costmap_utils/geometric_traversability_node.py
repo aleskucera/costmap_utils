@@ -95,8 +95,10 @@ class GeometricTraversabilityNode(Node):
 
             # --- FIXED: Reshape based on row-major ('C') order used by grid_map_msgs ---
             # Removing order='F' makes it default to 'C' (row-major).
-            inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
-                (rows, cols), order="C"
+            inpainted_elevation_np = (
+                np.array(msg.data[layer_idx].data, dtype=np.float32)
+                .reshape((rows, cols), order="C")
+                .transpose()
             )
 
             # Prepare inpainted map for traversability analyzer (fill NaNs)
