@@ -95,10 +95,8 @@ class GeometricTraversabilityNode(Node):
 
             # --- FIXED: Reshape based on row-major ('C') order used by grid_map_msgs ---
             # Removing order='F' makes it default to 'C' (row-major).
-            inpainted_elevation_np = (
-                np.array(msg.data[layer_idx].data, dtype=np.float32)
-                .reshape((rows, cols), order="C")
-                .transpose()
+            inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
+                (rows, cols), order="C"
             )
 
             # Prepare inpainted map for traversability analyzer (fill NaNs)
@@ -166,10 +164,11 @@ class GeometricTraversabilityNode(Node):
 
         for i in range(rows):
             for j in range(cols):
-                x = origin_x - half_length_x + (j + 0.5) * resolution
-                y = origin_y - half_length_y + (i + 0.5) * resolution
-                z = elevation_map[j, i]
-                traversability = traversability_map[j, i]
+                # FIXED: Reversed the subtraction to correct the 180-degree rotation
+                x = origin_x + half_length_x - (j + 0.5) * resolution
+                y = origin_y + half_length_y - (i + 0.5) * resolution
+                z = elevation_map[i, j]
+                traversability = traversability_map[i, j]
 
                 if not np.isnan(z) and not np.isnan(traversability):
                     points.append([x, y, z, traversability])
