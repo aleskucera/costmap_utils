@@ -159,11 +159,11 @@ class GeometricTraversabilityNode(Node):
         for i in range(rows):
             for j in range(cols):
                 # Correctly convert grid index (i, j) to world coordinates (x, y)
-                x = origin_x - half_length_x + (i + 0.5) * resolution
+                x = origin_x - half_length_x + (j + 0.5) * resolution
 
                 # --- FIXED: Corrected Y-axis calculation to fix mirroring ---
                 # Increasing row index 'i' moves along the map's -Y axis.
-                y = origin_y + half_length_y - (j + 0.5) * resolution
+                y = origin_y + half_length_y - (i + 0.5) * resolution
 
                 z = elevation_map[i, j]
                 traversability = traversability_map[i, j]
