@@ -94,7 +94,7 @@ class GeometricTraversabilityNode(Node):
             layer_idx = msg.layers.index(traversability_layer_name)
 
             inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
-                (rows, cols), order="C"
+                (rows, cols), order="F"
             )
 
             nan_mask = np.isnan(inpainted_elevation_np)
