@@ -165,8 +165,8 @@ class GeometricTraversabilityNode(Node):
                 # Increasing row index 'i' moves along the map's -Y axis.
                 y = origin_y + half_length_y - (i + 0.5) * resolution
 
-                z = elevation_map[i, j]
-                traversability = traversability_map[i, j]
+                z = elevation_map[j, i]
+                traversability = traversability_map[j, i]
 
                 if not np.isnan(z) and not np.isnan(traversability):
                     points.append([x, y, z, traversability])
