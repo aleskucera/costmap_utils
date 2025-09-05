@@ -281,3 +281,19 @@ class GeometricTraversabilityNode(Node):
         self.get_logger().info(
             f"Analyzer initialized on device '{analyzer_params['device']}' for a {cols}x{rows} grid."
         )
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = GeometricTraversabilityNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()
