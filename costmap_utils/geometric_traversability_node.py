@@ -94,7 +94,7 @@ class GeometricTraversabilityNode(Node):
             layer_idx = msg.layers.index(traversability_layer_name)
 
             inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
-                (rows, cols), order="F"
+                (rows, cols), order="C"
             )
 
             nan_mask = np.isnan(inpainted_elevation_np)
@@ -121,7 +121,7 @@ class GeometricTraversabilityNode(Node):
 
                 raw_layer_idx = msg.layers.index(raw_elevation_layer_name)
                 raw_elevation_np = np.array(msg.data[raw_layer_idx].data, dtype=np.float32).reshape(
-                    (rows, cols), order="F"
+                    (rows, cols), order="C"
                 )
 
                 self.get_logger().debug("Applying reliability filter to the cost map.")
