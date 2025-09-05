@@ -24,7 +24,6 @@ class GeometricTraversabilityNode(Node):
         # --- Parameters for Configuration ---
         self.declare_parameter("input_topic", "/elevation_mapping_node/elevation_map_filter")
         self.declare_parameter("output_topic", "/traversability_cloud")
-        # --- CHANGED: Renamed for clarity ---
         self.declare_parameter("traversability_input_layer", "inpaint")
         self.declare_parameter("use_cpu", False)
         self.declare_parameter("verbose", False)
@@ -45,7 +44,7 @@ class GeometricTraversabilityNode(Node):
         # Neighborhood parameters (in grid cells)
         self.declare_parameter("neighborhood.roughness_window_radius_cells", 2)
 
-        # --- CHANGED: Added parameters for the new GridMapFilter ---
+        # --- Added parameters for the new GridMapFilter ---
         self.declare_parameter("filter.enabled", True)
         self.declare_parameter("filter.raw_elevation_layer", "elevation")
         self.declare_parameter("filter.support_radius_cells", 2)
@@ -63,7 +62,6 @@ class GeometricTraversabilityNode(Node):
         )
 
         self.analyzer = None  # Will be initialized on first message
-        # --- CHANGED: Add instance for the filter ---
         self.filter = None  # Will be initialized on first message
 
         self.get_logger().info(
@@ -72,7 +70,6 @@ class GeometricTraversabilityNode(Node):
 
     def map_callback(self, msg: GridMap):
         """Callback to process an incoming GridMap message."""
-        # --- CHANGED: Handle initialization for both analyzer and filter ---
         if self.analyzer is None:
             self.initialize_analyzer(msg)
 
@@ -95,9 +92,11 @@ class GeometricTraversabilityNode(Node):
                 return
 
             layer_idx = msg.layers.index(traversability_layer_name)
-            # This is the inpainted data for traversability and final Z coordinates
+
+            # --- FIXED: Reshape based on row-major ('C') order used by grid_map_msgs ---
+            # Removing order='F' makes it default to 'C' (row-major).
             inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
-                (rows, cols), order="F"
+                (rows, cols), order="C"
             )
 
             # Prepare inpainted map for traversability analyzer (fill NaNs)
@@ -114,7 +113,7 @@ class GeometricTraversabilityNode(Node):
 
             final_cost_map = traversability_cost_map
 
-            # --- 3. CHANGED: Apply Reliability Filter (Optional) ---
+            # --- 3. Apply Reliability Filter (Optional) ---
             if filter_enabled:
                 raw_elevation_layer_name = self.get_parameter("filter.raw_elevation_layer").value
                 if raw_elevation_layer_name not in msg.layers:
@@ -125,9 +124,9 @@ class GeometricTraversabilityNode(Node):
                     return
 
                 raw_layer_idx = msg.layers.index(raw_elevation_layer_name)
-                # This is the raw data with NaNs used for the reliability check
+                # --- FIXED: Use correct row-major ('C') order for this layer as well ---
                 raw_elevation_np = np.array(msg.data[raw_layer_idx].data, dtype=np.float32).reshape(
-                    (rows, cols), order="F"
+                    (rows, cols), order="C"
                 )
 
                 # Apply the filter
@@ -137,7 +136,6 @@ class GeometricTraversabilityNode(Node):
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
-            # Use the final (potentially filtered) cost map and the inpainted elevation for Z values
             points = self.create_point_cloud_data(
                 final_cost_map,
                 inpainted_elevation_np,
@@ -171,7 +169,6 @@ class GeometricTraversabilityNode(Node):
                 z = elevation_map[i, j]
                 traversability = traversability_map[i, j]
 
-                # This check now correctly excludes points filtered out by the reliability filter
                 if not np.isnan(z) and not np.isnan(traversability):
                     points.append([x, y, z, traversability])
 
@@ -221,7 +218,6 @@ class GeometricTraversabilityNode(Node):
             ).value,
         }
 
-    # --- CHANGED: Added helper methods for the filter ---
     def _get_filter_params(self, msg: GridMap) -> dict:
         """Gathers parameters for the GridMapFilter from the ROS parameter server."""
         return {
