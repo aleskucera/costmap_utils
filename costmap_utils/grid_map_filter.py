@@ -29,7 +29,8 @@ class GridMapFilter:
 
         # Store the last valid transform
         self.last_valid_transform = None
-        self.last_transform_time = None
+        # Use a flag instead of trying to store time
+        self.has_valid_transform = False
 
         # Grid parameters are taken from the input map, not during initialization
         self.height = 0
@@ -127,8 +128,7 @@ class GridMapFilter:
 
                     try:
                         # Get the transform from map to base_link
-                        # FIXED: Create time objects correctly for ROS2
-                        # Use the latest available transform by using an empty time
+                        # Use empty constructor to get the latest available transform
                         transform = self.tf_buffer.lookup_transform(
                             map_frame,  # target frame
                             base_link_frame,  # source frame
@@ -138,7 +138,7 @@ class GridMapFilter:
 
                         # Store as last valid transform
                         self.last_valid_transform = transform
-                        self.last_transform_time = rclpy.get_clock().now()  # Use the node's clock
+                        self.has_valid_transform = True
 
                         if self.verbose:
                             print(
@@ -154,9 +154,10 @@ class GridMapFilter:
                             traceback.print_exc()
 
                         # Use last valid transform if it exists
-                        transform = self.last_valid_transform
-                        if transform is not None and self.verbose:
-                            print(f"Using last valid transform")
+                        if self.has_valid_transform:
+                            transform = self.last_valid_transform
+                            if self.verbose:
+                                print("Using last valid transform")
 
                     # If we have a valid transform (either fresh or stored), use it
                     if transform is not None:
