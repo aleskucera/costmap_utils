@@ -50,6 +50,13 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("filter.support_radius_cells", 2)
         self.declare_parameter("filter.support_ratio", 0.75)
 
+        # --- Box filter parameters ---
+        self.declare_parameter("filter.box_filter.enabled", True)
+        self.declare_parameter("filter.box_filter.center_x", 0.0)  # meters, in map frame
+        self.declare_parameter("filter.box_filter.center_y", 0.0)  # meters, in map frame
+        self.declare_parameter("filter.box_filter.size_x", 0.5)  # meters
+        self.declare_parameter("filter.box_filter.size_y", 0.5)  # meters
+
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
         self.output_topic = self.get_parameter("output_topic").value
@@ -132,7 +139,10 @@ class GeometricTraversabilityNode(Node):
                 # Apply the filter
                 self.get_logger().debug("Applying reliability filter to the cost map.")
                 final_cost_map = self.filter.apply_filters(
-                    raw_elevation_np, traversability_cost_map
+                    raw_elevation_np,
+                    traversability_cost_map,
+                    msg.info.pose.position.x,  # Pass map origin x
+                    msg.info.pose.position.y,  # Pass map origin y
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
@@ -227,6 +237,12 @@ class GeometricTraversabilityNode(Node):
             "grid_resolution": msg.info.resolution,
             "support_radius": self.get_parameter("filter.support_radius_cells").value,
             "support_ratio": self.get_parameter("filter.support_ratio").value,
+            # Box filter parameters
+            "box_filter_enabled": self.get_parameter("filter.box_filter.enabled").value,
+            "box_center_x": self.get_parameter("filter.box_filter.center_x").value,
+            "box_center_y": self.get_parameter("filter.box_filter.center_y").value,
+            "box_size_x": self.get_parameter("filter.box_filter.size_x").value,
+            "box_size_y": self.get_parameter("filter.box_filter.size_y").value,
         }
 
     def initialize_filter(self, msg: GridMap):
