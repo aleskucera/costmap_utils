@@ -2,6 +2,7 @@ import numpy as np
 import warp as wp
 
 from .filter_kernels import filter_grid
+from .filter_kernels import inflate_obstacles_kernel
 from .grid_utils import meters_to_cells
 
 
@@ -39,8 +40,6 @@ class GridMapFilter:
         self,
         raw_elevation: np.ndarray,
         cost_map: np.ndarray,
-        map_origin_x=0.0,
-        map_origin_y=0.0,
     ) -> np.ndarray:
         assert raw_elevation.shape != self.shape, "Invalid shape of the raw elevation map."
         assert cost_map.shape != self.shape, "Invalid shape of the cost map."
@@ -57,14 +56,23 @@ class GridMapFilter:
                 inputs=[
                     self._elevation_map,
                     self._cost_map,
-                    self.height,
-                    self.width,
                     self.support_radius_cells,
                     self.support_ratio,
                 ],
                 outputs=[self._filtered_cost],
                 device=self.device,
             )
+
+            # wp.launch(
+            #     kernel=inflate_obstacles_kernel,
+            #     dim=(self.height, self.width),
+            #     inputs=[
+            #         self._elevation_map,
+            #         self._cost_map,
+            #         self.support_radius_cells,
+            #         self.support_ratio,
+            #     ],
+            # )
 
         wp.synchronize()
 

@@ -135,8 +135,6 @@ class GeometricTraversabilityNode(Node):
                 cost_map = self.filter.apply_filters(
                     raw_elevation,
                     cost_map,
-                    msg.info.pose.position.x,
-                    msg.info.pose.position.y,
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
