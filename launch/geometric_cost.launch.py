@@ -29,26 +29,26 @@ def generate_launch_description():
                 # --- Cost Function Weights ---
                 # These should sum to 1.0
                 "weights.slope": 0.4,
-                "weights.step_height": 0.4,
+                "weights.step_height": 0.5,
                 "weights.surface_roughness": 0.2,
                 # --- Pre-processing Parameters ---
                 # Gaussian smoothing applied to the input elevation map before analysis
-                "preprocessing.smoothing_sigma_m": 0.08,
+                "preprocessing.smoothing_sigma_m": 0.05,
                 # --- Normalization Thresholds ---
                 # Values above these thresholds will receive the maximum cost for that metric.
-                "normalization.max_slope_deg": 70.0,
-                "normalization.max_step_height_m": 0.4,
+                "normalization.max_slope_deg": 50.0,
+                "normalization.max_step_height_m": 0.5,
                 "normalization.max_roughness_m": 0.2,
                 # --- Neighborhood Parameters ---
                 # Window size for calculating surface roughness
-                "neighborhood.roughness_window_radius_m": 0.1,
+                "neighborhood.roughness_window_radius_m": 0.2,
                 # --- Reliability Filter ---
                 # This filter can invalidate costs in areas with sparse raw elevation data.
                 "filter.enabled": True,
                 "filter.raw_elevation_layer": "elevation",  # The unfiltered elevation layer
                 "filter.support_radius_m": 0.1,  # Radius to check for supporting points
                 "filter.support_ratio": 0.75,  # Required ratio of valid points in the radius
-                "filter.inflation_radius_m": 0.3,  # Radius to check for supporting points
+                "filter.inflation_radius_m": 0.5,  # Radius to check for supporting points
                 "filter.obstacle_threshold": 0.8,  # Required ratio of valid points in the radius
             }
         ],
