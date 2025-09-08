@@ -32,7 +32,7 @@ class GeometricTraversabilityAnalyzer:
 
     def __init__(
         self,
-        device: str,
+        device: wp.context.Device,
         verbose: bool,
         # Grid parameters
         grid_resolution: float,
@@ -84,7 +84,7 @@ class GeometricTraversabilityAnalyzer:
             self._dilated_map = wp.zeros(self.shape, dtype=wp.float32)
             self._eroded_map = wp.zeros(self.shape, dtype=wp.float32)
 
-        self.gaussian_kernel, self.gaussian_kernel_radius = self.gaussian_kernel(
+        self.gaussian_kernel, self.gaussian_kernel_radius = gaussian_kernel(
             smoothing_sigma_m,
             grid_resolution,
             device,
