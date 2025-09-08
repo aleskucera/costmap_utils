@@ -90,11 +90,11 @@ class GeometricTraversabilityAnalyzer:
             self._dilated_map = wp.zeros(self.shape, dtype=wp.float32)
             self._eroded_map = wp.zeros(self.shape, dtype=wp.float32)
 
-        self.gaussian_kernel, self.gaussian_kernel_radius = gaussian_kernel(
-            meters_to_cells(smoothing_sigma_m, grid_resolution),
-            grid_resolution,
-            device,
-        )
+        # self.gaussian_kernel, self.gaussian_kernel_radius = gaussian_kernel(
+        #     meters_to_cells(smoothing_sigma_m, grid_resolution),
+        #     grid_resolution,
+        #     device,
+        # )
 
     def compute_traversability(self, heightmap: np.ndarray) -> np.ndarray:
         assert heightmap.shape == self.shape, "Invalid shape of the heightmap."
