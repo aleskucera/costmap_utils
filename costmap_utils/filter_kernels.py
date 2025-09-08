@@ -5,6 +5,8 @@ import warp as wp
 def filter_grid(
     elevation_map: wp.array(dtype=wp.float32, ndim=2),
     cost_map: wp.array(dtype=wp.float32, ndim=2),
+    map_height: wp.int32,
+    map_width: wp.int32,
     support_radius: wp.int32,  # in cells
     support_ratio: wp.float32,  # threshold ratio
     # --- Output ---
@@ -14,14 +16,11 @@ def filter_grid(
     measured_count = int(0)
     total_count = int(0)
 
-    height = wp.shape(elevation_map, 0)
-    width = wp.shape(elevation_map, 1)
-
     for dr in range(-support_radius, support_radius + 1):
         for dc in range(-support_radius, support_radius + 1):
             nr = r + dr
             nc = c + dc
-            if nr >= 0 and nr < height and nc >= 0 and nc < width:
+            if nr >= 0 and nr < map_height and nc >= 0 and nc < map_width:
                 val = elevation_map[nr, nc]
                 total_count += 1
                 if not wp.isnan(val):
@@ -64,6 +63,8 @@ def filter_box_kernel(
 
 @wp.kernel
 def inflate_obstacles_kernel(
+    map_height: wp.int32,
+    map_width: wp.int32,
     inflation_radius: wp.int32,
     obstacle_threshold: wp.float32,
     # -- Output ---
@@ -76,7 +77,7 @@ def inflate_obstacles_kernel(
         for dc in range(-inflation_radius, inflation_radius + 1):
             nr = r + dr
             nc = c + dc
-            if nr >= 0 and nr < cost_map.shape[0] and nc >= 0 and nc < cost_map.shape[1]:
+            if nr >= 0 and nr < map_height and nc >= 0 and nc < map_width:
                 cost_val = cost_map[nr, nc]
                 if not wp.isnan(cost_val) and cost_val > obstacle_threshold:
                     inflated_cost = cost_val
