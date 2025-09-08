@@ -56,6 +56,8 @@ class GridMapFilter:
                 inputs=[
                     self._elevation_map,
                     self._cost_map,
+                    self.height,
+                    self.width,
                     self.support_radius_cells,
                     self.support_ratio,
                 ],
