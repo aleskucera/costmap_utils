@@ -26,7 +26,7 @@ class GridMapFilter:
         self.width = grid_width
         self.shape = (self.height, self.width)
 
-        self.support_radius_cells = meters_to_cells(support_radius_m)
+        self.support_radius_cells = meters_to_cells(support_radius_m, grid_resolution)
         self.support_ratio = support_ratio
 
         # Create GPU arrays for inputs and outputs
