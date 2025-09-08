@@ -1,5 +1,6 @@
 import numpy as np
 import warp as wp
+from geometry_msgs.msg import TransformStamped
 
 from .filter_kernels import filter_grid
 from .filter_kernels import inflate_obstacles_kernel
@@ -46,9 +47,19 @@ class GridMapFilter:
         self,
         raw_elevation: np.ndarray,
         cost_map: np.ndarray,
+        transform: TransformStamped,
     ) -> np.ndarray:
         assert raw_elevation.shape == self.shape, "Invalid shape of the raw elevation map."
         assert cost_map.shape == self.shape, "Invalid shape of the cost map."
+
+        # --- DEBUG: Print the received transform ---
+        tx = transform.transform.translation.x
+        ty = transform.transform.translation.y
+        tz = transform.transform.translation.z
+        print(
+            f"[GridMapFilter] Received transform from '{transform.header.frame_id}' to '{transform.child_frame_id}':"
+        )
+        print(f"  Translation: [x: {tx:.3f}, y: {ty:.3f}, z: {tz:.3f}]")
 
         # Upload data to GPU
         self._elevation_map.assign(wp.from_numpy(raw_elevation, device=self.device))
