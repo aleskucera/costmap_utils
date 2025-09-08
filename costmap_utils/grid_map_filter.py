@@ -29,14 +29,15 @@ class GridMapFilter:
         self.support_radius_cells = meters_to_cells(support_radius_m, grid_resolution)
         self.support_ratio = support_ratio
 
-        self.inflation_radius_cells = 4
-        self.obstacle_threshold = 0.7
+        self.inflation_radius_cells = meters_to_cells(0.2, grid_resolution)
+        self.obstacle_threshold = 0.8
 
         # Create GPU arrays for inputs and outputs
         with wp.ScopedDevice(self.device):
             self._elevation_map = wp.zeros(self.shape, dtype=wp.float32)
             self._cost_map = wp.zeros(self.shape, dtype=wp.float32)
             self._filtered_cost = wp.zeros(self.shape, dtype=wp.float32)
+            self._inflated_cost = wp.zeros(self.shape, dtype=wp.float32)
             self._box_filtered_cost = wp.zeros(self.shape, dtype=wp.float32)
 
     def apply_filters(
@@ -72,14 +73,15 @@ class GridMapFilter:
                 kernel=inflate_obstacles_kernel,
                 dim=(self.height, self.width),
                 inputs=[
+                    self._filtered_cost,
                     self.height,
                     self.width,
                     self.inflation_radius_cells,
                     self.obstacle_threshold,
-                    self._filtered_cost,
+                    self._inflated_cost,
                 ],
             )
 
         wp.synchronize()
 
-        return self._filtered_cost.numpy()
+        return self._inflated_cost.numpy()

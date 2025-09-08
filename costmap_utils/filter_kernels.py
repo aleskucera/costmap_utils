@@ -63,12 +63,13 @@ def filter_box_kernel(
 
 @wp.kernel
 def inflate_obstacles_kernel(
+    cost_map: wp.array(dtype=wp.float32, ndim=2),
     map_height: wp.int32,
     map_width: wp.int32,
     inflation_radius: wp.int32,
     obstacle_threshold: wp.float32,
     # -- Output ---
-    cost_map: wp.array(dtype=wp.float32, ndim=2),
+    inflated_cost_map: wp.array(dtype=wp.float32, ndim=2),
 ):
     r, c = wp.tid()
     inflated_cost = cost_map[r, c]
@@ -82,4 +83,4 @@ def inflate_obstacles_kernel(
                 if not wp.isnan(cost_val) and cost_val > obstacle_threshold:
                     inflated_cost = cost_val
 
-    cost_map[r, c] = inflated_cost
+    inflated_cost_map[r, c] = inflated_cost
