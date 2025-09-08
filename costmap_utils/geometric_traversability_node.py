@@ -13,11 +13,37 @@ from sensor_msgs.msg import PointField
 
 from .geometric_traversability_analyzer import GeometricTraversabilityAnalyzer
 from .grid_map_filter import GridMapFilter
+from .grid_utils import extract_layer
+from .grid_utils import meters_to_cells
+
+
+def create_traversability_cloud_data(
+    traversability_map: np.ndarray,
+    elevation_map: np.ndarray,
+    origin_x,
+    origin_y,
+    resolution: float,
+):
+    rows, cols = traversability_map.shape
+    points = []
+
+    half_length_x = (cols * resolution) / 2.0
+    half_length_y = (rows * resolution) / 2.0
+
+    for r in range(rows):
+        for c in range(cols):
+            x = origin_x + half_length_x - (c + 0.5) * resolution
+            y = origin_y + half_length_y - (r + 0.5) * resolution
+            z = elevation_map[r, c]
+            traversability = traversability_map[r, c]
+
+            if not np.isnan(z) and not np.isnan(traversability):
+                points.append([x, y, z, traversability])
+
+    return points
 
 
 class GeometricTraversabilityNode(Node):
-    """A ROS 2 Node for GPU-accelerated geometric traversability analysis from GridMaps."""
-
     def __init__(self):
         super().__init__("geometric_traversability_node")
 
@@ -42,20 +68,13 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("normalization.max_roughness_m", 0.2)
 
         # Neighborhood parameters (in grid cells)
-        self.declare_parameter("neighborhood.roughness_window_radius_cells", 2)
+        self.declare_parameter("neighborhood.roughness_window_radius_m", 0.1)
 
         # --- Added parameters for the new GridMapFilter ---
         self.declare_parameter("filter.enabled", True)
         self.declare_parameter("filter.raw_elevation_layer", "elevation")
-        self.declare_parameter("filter.support_radius_cells", 2)
+        self.declare_parameter("filter.support_radius_m", 0.1)
         self.declare_parameter("filter.support_ratio", 0.75)
-
-        # --- Box filter parameters ---
-        self.declare_parameter("filter.box_filter.enabled", True)
-        self.declare_parameter("filter.box_filter.center_x", 0.0)  # meters, in map frame
-        self.declare_parameter("filter.box_filter.center_y", 0.0)  # meters, in map frame
-        self.declare_parameter("filter.box_filter.size_x", 0.5)  # meters
-        self.declare_parameter("filter.box_filter.size_y", 0.5)  # meters
 
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
@@ -85,73 +104,48 @@ class GeometricTraversabilityNode(Node):
             self.initialize_filter(msg)
 
         try:
-            resolution = msg.info.resolution
-            rows = int(round(msg.info.length_y / resolution))
-            cols = int(round(msg.info.length_x / resolution))
-
             # --- 1. Extract and Process Layers ---
             traversability_layer_name = self.get_parameter("traversability_input_layer").value
             if traversability_layer_name not in msg.layers:
                 self.get_logger().error(
-                    f"Traversability input layer '{traversability_layer_name}' not found. Available: {msg.layers}",
+                    f"Traversability input layer '{traversability_layer_name}' "
+                    f"not found. Available: {msg.layers}",
                     throttle_duration_sec=5,
                 )
                 return
 
-            layer_idx = msg.layers.index(traversability_layer_name)
-
-            # --- FIXED: Reshape based on row-major ('C') order used by grid_map_msgs ---
-            # Removing order='F' makes it default to 'C' (row-major).
-            inpainted_elevation_np = np.array(msg.data[layer_idx].data, dtype=np.float32).reshape(
-                (rows, cols), order="C"
-            )
-
-            # Prepare inpainted map for traversability analyzer (fill NaNs)
-            nan_mask = np.isnan(inpainted_elevation_np)
-            traversability_input_map = np.copy(inpainted_elevation_np)
-            fill_value = np.nanmin(traversability_input_map) if not np.all(nan_mask) else 0.0
-            traversability_input_map[nan_mask] = fill_value
-
             # --- 2. Compute Traversability ---
-            results = self.analyzer.compute_traversability(traversability_input_map)
-            traversability_cost_map = results["traversability_cost"]
-            # Restore NaNs where the original inpainted map had them
-            traversability_cost_map[nan_mask] = np.nan
-
-            final_cost_map = traversability_cost_map
+            inpainted_elevation = extract_layer(msg, traversability_layer_name)
+            cost_map = self.analyzer.compute_traversability(inpainted_elevation)
 
             # --- 3. Apply Reliability Filter (Optional) ---
             if filter_enabled:
                 raw_elevation_layer_name = self.get_parameter("filter.raw_elevation_layer").value
                 if raw_elevation_layer_name not in msg.layers:
                     self.get_logger().error(
-                        f"Raw elevation layer '{raw_elevation_layer_name}' for filtering not found. Available: {msg.layers}",
+                        f"Raw elevation layer '{raw_elevation_layer_name}' for "
+                        f"filtering not found. Available: {msg.layers}",
                         throttle_duration_sec=5,
                     )
                     return
 
-                raw_layer_idx = msg.layers.index(raw_elevation_layer_name)
-                # --- FIXED: Use correct row-major ('C') order for this layer as well ---
-                raw_elevation_np = np.array(msg.data[raw_layer_idx].data, dtype=np.float32).reshape(
-                    (rows, cols), order="C"
-                )
+                raw_elevation = extract_layer(msg, raw_elevation_layer_name)
 
                 # Apply the filter
-                self.get_logger().debug("Applying reliability filter to the cost map.")
-                final_cost_map = self.filter.apply_filters(
-                    raw_elevation_np,
-                    traversability_cost_map,
-                    msg.info.pose.position.x,  # Pass map origin x
-                    msg.info.pose.position.y,  # Pass map origin y
+                cost_map = self.filter.apply_filters(
+                    raw_elevation,
+                    cost_map,
+                    msg.info.pose.position.x,
+                    msg.info.pose.position.y,
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
-            points = self.create_point_cloud_data(
-                final_cost_map,
-                inpainted_elevation_np,
+            points = create_traversability_cloud_data(
+                cost_map,
+                inpainted_elevation,
                 msg.info.pose.position.x,
                 msg.info.pose.position.y,
-                resolution,
+                msg.info.resolution,
             )
 
             # --- 5. Publish PointCloud2 message ---
@@ -161,29 +155,6 @@ class GeometricTraversabilityNode(Node):
         except Exception as e:
             self.get_logger().error(f"Error processing GridMap: {e}")
             traceback.print_exc()
-
-    def create_point_cloud_data(
-        self, traversability_map, elevation_map, origin_x, origin_y, resolution
-    ):
-        """Convert traversability and elevation data to point cloud points."""
-        rows, cols = traversability_map.shape
-        points = []
-
-        half_length_x = (cols * resolution) / 2.0
-        half_length_y = (rows * resolution) / 2.0
-
-        for i in range(rows):
-            for j in range(cols):
-                # FIXED: Reversed the subtraction to correct the 180-degree rotation
-                x = origin_x + half_length_x - (j + 0.5) * resolution
-                y = origin_y + half_length_y - (i + 0.5) * resolution
-                z = elevation_map[i, j]
-                traversability = traversability_map[i, j]
-
-                if not np.isnan(z) and not np.isnan(traversability):
-                    points.append([x, y, z, traversability])
-
-        return points
 
     def create_point_cloud_msg(self, points, frame_id):
         """Create a PointCloud2 message from point data."""
@@ -205,64 +176,72 @@ class GeometricTraversabilityNode(Node):
 
         return cloud_msg
 
-    def _get_analyzer_params(self, msg: GridMap) -> dict:
-        """Gathers parameters from the ROS parameter server."""
-        return {
-            "device": "cpu" if self.get_parameter("use_cpu").value else wp.get_device(),
-            "verbose": self.get_parameter("verbose").value,
-            "grid_resolution": msg.info.resolution,
-            "smoothing_sigma": self.get_parameter("preprocessing.smoothing_sigma_m").value,
-            "slope_normalization_factor": math.radians(
-                self.get_parameter("normalization.max_slope_deg").value
-            ),
-            "step_height_normalization_factor": self.get_parameter(
-                "normalization.max_step_height_m"
-            ).value,
-            "surf_roughness_normalization_factor": self.get_parameter(
-                "normalization.max_roughness_m"
-            ).value,
-            "slope_cost_weight": self.get_parameter("weights.slope").value,
-            "step_height_cost_weight": self.get_parameter("weights.step_height").value,
-            "surf_roughness_cost_weight": self.get_parameter("weights.surface_roughness").value,
-            "roughness_window_radius": self.get_parameter(
-                "neighborhood.roughness_window_radius_cells"
-            ).value,
-        }
-
-    def _get_filter_params(self, msg: GridMap) -> dict:
-        """Gathers parameters for the GridMapFilter from the ROS parameter server."""
-        return {
-            "device": "cpu" if self.get_parameter("use_cpu").value else wp.get_device(),
-            "verbose": self.get_parameter("verbose").value,
-            "grid_resolution": msg.info.resolution,
-            "support_radius": self.get_parameter("filter.support_radius_cells").value,
-            "support_ratio": self.get_parameter("filter.support_ratio").value,
-            # Box filter parameters
-            "box_filter_enabled": self.get_parameter("filter.box_filter.enabled").value,
-            "box_center_x": self.get_parameter("filter.box_filter.center_x").value,
-            "box_center_y": self.get_parameter("filter.box_filter.center_y").value,
-            "box_size_x": self.get_parameter("filter.box_filter.size_x").value,
-            "box_size_y": self.get_parameter("filter.box_filter.size_y").value,
-        }
-
     def initialize_filter(self, msg: GridMap):
-        """Initializes the GridMapFilter upon receiving the first message."""
         self.get_logger().info("First map received. Initializing GridMapFilter...")
-        filter_params = self._get_filter_params(msg)
-        self.filter = GridMapFilter(**filter_params)
-        self.get_logger().info(f"GridMapFilter initialized on device '{filter_params['device']}'.")
+
+        device = ("cpu" if self.get_parameter("use_cpu").value else wp.get_device(),)
+        verbose = self.get_parameter("verbose").value
+
+        grid_resolution = msg.info.resolution
+        grid_height = meters_to_cells(msg.info.length_y, grid_resolution)
+        grid_width = meters_to_cells(msg.info.length_x, grid_resolution)
+
+        support_radius_m = self.get_parameter("filter.support_radius_m").value
+        support_ratio = self.get_parameter("filter.support_ratio").value
+
+        self.filter = GridMapFilter(
+            device=device,
+            verbose=verbose,
+            grid_resolution=grid_resolution,
+            grid_height=grid_height,
+            grid_width=grid_width,
+            support_radius_m=support_radius_m,
+            support_ratio=support_ratio,
+        )
+
+        self.get_logger().info(f"GridMapFilter initialized on device '{device}'.")
 
     def initialize_analyzer(self, msg: GridMap):
-        """Initializes the TraversabilityAnalyzer upon receiving the first message."""
         self.get_logger().info("First map received. Initializing TraversabilityAnalyzer...")
-        analyzer_params = self._get_analyzer_params(msg)
-        self.analyzer = GeometricTraversabilityAnalyzer(**analyzer_params)
 
-        resolution = msg.info.resolution
-        rows = int(round(msg.info.length_y / resolution))
-        cols = int(round(msg.info.length_x / resolution))
+        device = ("cpu" if self.get_parameter("use_cpu").value else wp.get_device(),)
+        verbose = self.get_parameter("verbose").value
+
+        grid_resolution = msg.info.resolution
+        grid_height = meters_to_cells(msg.info.length_y, grid_resolution)
+        grid_width = meters_to_cells(msg.info.length_x, grid_resolution)
+
+        smoothing_sigma_m = self.get_parameter("preprocessing.smoothing_sigma_m").value
+        roughness_window_radius_m = self.get_parameter(
+            "neighborhood.roughness_window_radius_m"
+        ).value
+
+        max_slope_rad = math.radians(self.get_parameter("normalization.max_slope_deg").value)
+        max_step_height_m = self.get_parameter("normalization.max_step_height_m").value
+        max_roughness_m = self.get_parameter("normalization.max_roughness_m").value
+
+        slope_cost_weight = self.get_parameter("weights.slope").value
+        step_height_cost_weight = self.get_parameter("weights.step_height").value
+        surf_roughness_cost_weight = self.get_parameter("weights.surface_roughness").value
+
+        self.analyzer = GeometricTraversabilityAnalyzer(
+            device=device,
+            verbose=verbose,
+            grid_resolution=grid_resolution,
+            grid_height=grid_height,
+            grid_width=grid_width,
+            smoothing_sigma_m=smoothing_sigma_m,
+            roughness_window_radius_m=roughness_window_radius_m,
+            max_slope_rad=max_slope_rad,
+            max_step_height_m=max_step_height_m,
+            max_roughness_m=max_roughness_m,
+            slope_cost_weight=slope_cost_weight,
+            step_height_cost_weight=step_height_cost_weight,
+            surf_roughness_cost_weight=surf_roughness_cost_weight,
+        )
+
         self.get_logger().info(
-            f"Analyzer initialized on device '{analyzer_params['device']}' for a {cols}x{rows} grid."
+            f"Analyzer initialized on device '{device}' for a {grid_height}x{grid_width} grid."
         )
 
 
