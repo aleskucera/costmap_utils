@@ -94,6 +94,9 @@ class GeometricTraversabilityNode(Node):
             f"Node '{self.get_name()}' initialized. Waiting for GridMap on '{self.input_topic}'..."
         )
 
+        if self.get_parameter("use_cpu").value:
+            wp.set_device("cpu")
+
     def map_callback(self, msg: GridMap):
         """Callback to process an incoming GridMap message."""
         if self.analyzer is None:
@@ -177,7 +180,6 @@ class GeometricTraversabilityNode(Node):
     def initialize_filter(self, msg: GridMap):
         self.get_logger().info("First map received. Initializing GridMapFilter...")
 
-        device = ("cpu" if self.get_parameter("use_cpu").value else wp.get_device(),)
         verbose = self.get_parameter("verbose").value
 
         grid_resolution = msg.info.resolution
@@ -188,7 +190,7 @@ class GeometricTraversabilityNode(Node):
         support_ratio = self.get_parameter("filter.support_ratio").value
 
         self.filter = GridMapFilter(
-            device=device,
+            device=wp.get_device(),
             verbose=verbose,
             grid_resolution=grid_resolution,
             grid_height=grid_height,
@@ -197,12 +199,11 @@ class GeometricTraversabilityNode(Node):
             support_ratio=support_ratio,
         )
 
-        self.get_logger().info(f"GridMapFilter initialized on device '{device}'.")
+        self.get_logger().info(f"GridMapFilter initialized on device '{wp.get_device()}'.")
 
     def initialize_analyzer(self, msg: GridMap):
         self.get_logger().info("First map received. Initializing TraversabilityAnalyzer...")
 
-        device = ("cpu" if self.get_parameter("use_cpu").value else wp.get_device(),)
         verbose = self.get_parameter("verbose").value
 
         grid_resolution = msg.info.resolution
@@ -223,7 +224,7 @@ class GeometricTraversabilityNode(Node):
         surf_roughness_cost_weight = self.get_parameter("weights.surface_roughness").value
 
         self.analyzer = GeometricTraversabilityAnalyzer(
-            device=device,
+            device=wp.get_device(),
             verbose=verbose,
             grid_resolution=grid_resolution,
             grid_height=grid_height,
@@ -239,7 +240,7 @@ class GeometricTraversabilityNode(Node):
         )
 
         self.get_logger().info(
-            f"Analyzer initialized on device '{device}' for a {grid_height}x{grid_width} grid."
+            f"Analyzer initialized on device '{wp.get_device()}' for a {grid_height}x{grid_width} grid."
         )
 
 

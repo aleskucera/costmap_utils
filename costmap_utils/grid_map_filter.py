@@ -9,7 +9,7 @@ from .grid_utils import meters_to_cells
 class GridMapFilter:
     def __init__(
         self,
-        device: str,
+        device: wp.context.Device,
         verbose: bool,
         grid_resolution: float,
         grid_height: int,
