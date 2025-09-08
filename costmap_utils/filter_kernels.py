@@ -14,7 +14,8 @@ def filter_grid(
     measured_count = int(0)
     total_count = int(0)
 
-    height, width = elevation_map.shape
+    height = wp.shape(elevation_map, 0)
+    width = wp.shape(elevation_map, 1)
 
     for dr in range(-support_radius, support_radius + 1):
         for dc in range(-support_radius, support_radius + 1):
