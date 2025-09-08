@@ -71,13 +71,11 @@ def inflate_obstacles_kernel(
     r, c = wp.tid()
     inflated_cost = cost_map[r, c]
 
-    height, width = cost_map.shape
-
     for dr in range(-inflation_radius, inflation_radius + 1):
         for dc in range(-inflation_radius, inflation_radius + 1):
             nr = r + dr
             nc = c + dc
-            if nr >= 0 and nr < height and nc >= 0 and nc < width:
+            if nr >= 0 and nr < cost_map.shape[0] and nc >= 0 and nc < cost_map.shape[1]:
                 cost_val = cost_map[nr, nc]
                 if not wp.isnan(cost_val) and cost_val > obstacle_threshold:
                     inflated_cost = cost_val
