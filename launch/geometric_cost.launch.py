@@ -33,15 +33,15 @@ def generate_launch_description():
                 "weights.surface_roughness": 0.2,
                 # --- Pre-processing Parameters ---
                 # Gaussian smoothing applied to the input elevation map before analysis
-                "preprocessing.smoothing_sigma_m": 0.05,
+                "preprocessing.smoothing_sigma_m": 0.08,
                 # --- Normalization Thresholds ---
                 # Values above these thresholds will receive the maximum cost for that metric.
                 "normalization.max_slope_deg": 50.0,
                 "normalization.max_step_height_m": 0.5,
                 "normalization.max_roughness_m": 0.2,
                 # --- Neighborhood Parameters ---
-                # Window size for calculating surface roughness
-                "neighborhood.roughness_window_radius_m": 0.2,
+                "neighborhood.step_window_radius_m": 0.1,
+                "neighborhood.roughness_window_radius_m": 0.4,
                 # --- Reliability Filter ---
                 # This filter can invalidate costs in areas with sparse raw elevation data.
                 "filter.enabled": True,

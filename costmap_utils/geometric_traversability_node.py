@@ -67,7 +67,8 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("normalization.max_step_height_m", 0.4)
         self.declare_parameter("normalization.max_roughness_m", 0.2)
 
-        # Neighborhood parameters (in grid cells)
+        # Neighborhood parameters (in meters)
+        self.declare_parameter("neighborhood.step_window_radius_m", 0.1)
         self.declare_parameter("neighborhood.roughness_window_radius_m", 0.1)
 
         # --- Added parameters for the new GridMapFilter ---
@@ -218,6 +219,7 @@ class GeometricTraversabilityNode(Node):
         grid_width = meters_to_cells(msg.info.length_x, grid_resolution)
 
         smoothing_sigma_m = self.get_parameter("preprocessing.smoothing_sigma_m").value
+        step_window_radius_m = self.get_parameter("neighborhood.step_window_radius_m").value
         roughness_window_radius_m = self.get_parameter(
             "neighborhood.roughness_window_radius_m"
         ).value
@@ -237,6 +239,7 @@ class GeometricTraversabilityNode(Node):
             grid_height=grid_height,
             grid_width=grid_width,
             smoothing_sigma_m=smoothing_sigma_m,
+            step_window_radius_m=step_window_radius_m,
             roughness_window_radius_m=roughness_window_radius_m,
             max_slope_rad=max_slope_rad,
             max_step_height_m=max_step_height_m,

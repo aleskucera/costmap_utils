@@ -72,23 +72,22 @@ def morph_op_kernel(
     src: wp.array(dtype=wp.float32, ndim=2),
     grid_height: wp.int32,
     grid_width: wp.int32,
+    radius: wp.int32,
     op: wp.int32,  # 0 for erode, 1 for dilate
     # --- Output ---
     dst: wp.array(dtype=wp.float32, ndim=2),
 ):
-    """Performs a morphological erosion (min) or dilation (max) operation."""
+    """Performs morphological erosion (min) or dilation (max) with an arbitrary radius."""
     r, c = wp.tid()
     val = src[r, c]
-    for dr in range(-1, 2):
-        for dc in range(-1, 2):
+    for dr in range(-radius, radius + 1):
+        for dc in range(-radius, radius + 1):
             nr = wp.clamp(r + dr, 0, grid_height - 1)
             nc = wp.clamp(c + dc, 0, grid_width - 1)
-            # Erode
             if op == 0:
-                val = wp.min(val, src[nr, nc])
-            # Dilate
+                val = wp.min(val, src[nr, nc])  # Erode
             else:
-                val = wp.max(val, src[nr, nc])
+                val = wp.max(val, src[nr, nc])  # Dilate
     dst[r, c] = val
 
 

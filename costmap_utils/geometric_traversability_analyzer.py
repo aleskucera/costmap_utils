@@ -40,7 +40,8 @@ class GeometricTraversabilityAnalyzer:
         grid_width: int,
         # Kernel parameters
         smoothing_sigma_m: float,
-        roughness_window_radius_m: int,
+        step_window_radius_m: float,
+        roughness_window_radius_m: float,
         # Normalization factors
         max_slope_rad: float,
         max_step_height_m: float,
@@ -59,8 +60,13 @@ class GeometricTraversabilityAnalyzer:
         self.width = grid_width
         self.shape = (self.height, self.width)
 
+        self.step_window_radius_cells = meters_to_cells(
+            step_window_radius_m,
+            grid_resolution,
+        )
         self.roughness_window_radius_cells = meters_to_cells(
-            roughness_window_radius_m, grid_resolution
+            roughness_window_radius_m,
+            grid_resolution,
         )
 
         self.max_slope_rad = max_slope_rad
@@ -85,7 +91,7 @@ class GeometricTraversabilityAnalyzer:
             self._eroded_map = wp.zeros(self.shape, dtype=wp.float32)
 
         self.gaussian_kernel, self.gaussian_kernel_radius = gaussian_kernel(
-            smoothing_sigma_m,
+            meters_to_cells(smoothing_sigma_m, grid_resolution),
             grid_resolution,
             device,
         )
@@ -134,6 +140,7 @@ class GeometricTraversabilityAnalyzer:
                     self._heightmap_smoothed,
                     self.height,
                     self.width,
+                    self.step_window_radius_cells,
                     1,
                 ],
                 outputs=[self._dilated_map],
@@ -146,6 +153,7 @@ class GeometricTraversabilityAnalyzer:
                     self._heightmap_smoothed,
                     self.height,
                     self.width,
+                    self.step_window_radius_cells,
                     0,
                 ],
                 outputs=[self._eroded_map],
