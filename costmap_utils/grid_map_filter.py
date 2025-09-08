@@ -31,8 +31,8 @@ class GridMapFilter:
         self.support_radius_cells = meters_to_cells(support_radius_m, grid_resolution)
         self.support_ratio = support_ratio
 
-        self.inflation_radius_cells = meters_to_cells(0.2, grid_resolution)
-        self.obstacle_threshold = 0.8
+        self.inflation_radius_cells = meters_to_cells(inflation_radius_m, grid_resolution)
+        self.obstacle_threshold = obstacle_threshold
 
         # Create GPU arrays for inputs and outputs
         with wp.ScopedDevice(self.device):
