@@ -59,7 +59,9 @@ class GeometricTraversabilityAnalyzer:
         self.width = grid_width
         self.shape = (self.height, self.width)
 
-        self.roughness_window_radius_cells = meters_to_cells(roughness_window_radius_m)
+        self.roughness_window_radius_cells = meters_to_cells(
+            roughness_window_radius_m, grid_resolution
+        )
 
         self.max_slope_rad = max_slope_rad
         self.max_step_height_m = max_step_height_m
