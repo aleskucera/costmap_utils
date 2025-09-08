@@ -15,7 +15,7 @@ def generate_launch_description():
 
     geometric_traversability_node = Node(
         package="costmap_utils",
-        executable="geometric_traversability_node.py",
+        executable="geometric_traversability_node",
         name="geometric_traversability_node",
         output="screen",
         parameters=[
