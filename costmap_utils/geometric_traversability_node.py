@@ -75,6 +75,8 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("filter.raw_elevation_layer", "elevation")
         self.declare_parameter("filter.support_radius_m", 0.1)
         self.declare_parameter("filter.support_ratio", 0.75)
+        self.declare_parameter("filter.inflation_radius_m", 0.3)
+        self.declare_parameter("filter.obstacle_threshold", 0.8)
 
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
@@ -189,6 +191,9 @@ class GeometricTraversabilityNode(Node):
         support_radius_m = self.get_parameter("filter.support_radius_m").value
         support_ratio = self.get_parameter("filter.support_ratio").value
 
+        inflation_radius_m = self.get_parameter("filter.inflation_radius_m").value
+        obstacle_threshold = self.get_parameter("filter.obstacle_threshold").value
+
         self.filter = GridMapFilter(
             device=wp.get_device(),
             verbose=verbose,
@@ -197,6 +202,8 @@ class GeometricTraversabilityNode(Node):
             grid_width=grid_width,
             support_radius_m=support_radius_m,
             support_ratio=support_ratio,
+            inflation_radius_m=inflation_radius_m,
+            obstacle_threshold=obstacle_threshold,
         )
 
         self.get_logger().info(f"GridMapFilter initialized on device '{wp.get_device()}'.")

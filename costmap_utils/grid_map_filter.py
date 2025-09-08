@@ -16,6 +16,8 @@ class GridMapFilter:
         grid_width: int,
         support_radius_m: float,
         support_ratio: float,
+        inflation_radius_m: float,
+        obstacle_threshold: float,
     ):
 
         self.device = device
@@ -78,6 +80,8 @@ class GridMapFilter:
                     self.width,
                     self.inflation_radius_cells,
                     self.obstacle_threshold,
+                ],
+                outputs=[
                     self._inflated_cost,
                 ],
             )

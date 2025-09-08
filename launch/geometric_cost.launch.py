@@ -48,6 +48,8 @@ def generate_launch_description():
                 "filter.raw_elevation_layer": "elevation",  # The unfiltered elevation layer
                 "filter.support_radius_m": 0.1,  # Radius to check for supporting points
                 "filter.support_ratio": 0.75,  # Required ratio of valid points in the radius
+                "filter.inflation_radius_m": 0.3,  # Radius to check for supporting points
+                "filter.obstacle_threshold": 0.8,  # Required ratio of valid points in the radius
             }
         ],
     )
