@@ -99,23 +99,23 @@ class GeometricTraversabilityAnalyzer:
     def compute_traversability(self, heightmap: np.ndarray) -> np.ndarray:
         assert heightmap.shape == self.shape, "Invalid shape of the heightmap."
 
-        self._heightmap.assign(wp.from_numpy(heightmap, device=self.device))
+        self._heightmap_smoothed.assign(wp.from_numpy(heightmap, device=self.device))
 
         with wp.ScopedTimer("Full Traversability Pipeline", active=self.verbose):
             # 1. Smooth the input heightmap
-            wp.launch(
-                kernel=apply_gaussian_blur_kernel,
-                dim=(self.height, self.width),
-                inputs=[
-                    self._heightmap,
-                    self.gaussian_kernel,
-                    self.gaussian_kernel_radius,
-                    self.height,
-                    self.width,
-                ],
-                outputs=[self._heightmap_smoothed],
-                device=self.device,
-            )
+            # wp.launch(
+            #     kernel=apply_gaussian_blur_kernel,
+            #     dim=(self.height, self.width),
+            #     inputs=[
+            #         self._heightmap,
+            #         self.gaussian_kernel,
+            #         self.gaussian_kernel_radius,
+            #         self.height,
+            #         self.width,
+            #     ],
+            #     outputs=[self._heightmap_smoothed],
+            #     device=self.device,
+            # )
 
             # 2. Compute slope and surface normals
             wp.launch(
