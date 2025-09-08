@@ -91,9 +91,7 @@ class GeometricTraversabilityAnalyzer:
         )
 
     def compute_traversability(self, heightmap: np.ndarray) -> np.ndarray:
-        assert (
-            heightmap.shape != self.shape
-        ), f"Invalid shape of the heightmap. {heightmap.shape} vs {self.shape}"
+        assert heightmap.shape == self.shape, "Invalid shape of the heightmap."
 
         self._heightmap.assign(wp.from_numpy(heightmap, device=self.device))
 

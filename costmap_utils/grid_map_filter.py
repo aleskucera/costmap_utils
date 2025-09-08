@@ -41,8 +41,8 @@ class GridMapFilter:
         raw_elevation: np.ndarray,
         cost_map: np.ndarray,
     ) -> np.ndarray:
-        assert raw_elevation.shape != self.shape, "Invalid shape of the raw elevation map."
-        assert cost_map.shape != self.shape, "Invalid shape of the cost map."
+        assert raw_elevation.shape == self.shape, "Invalid shape of the raw elevation map."
+        assert cost_map.shape == self.shape, "Invalid shape of the cost map."
 
         # Upload data to GPU
         self._elevation_map.assign(wp.from_numpy(raw_elevation, device=self.device))
