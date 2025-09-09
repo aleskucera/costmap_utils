@@ -4,9 +4,7 @@ import traceback
 
 import numpy as np
 import rclpy
-import tf2_ros
 import warp as wp
-from geometry_msgs.msg import TransformStamped
 from grid_map_msgs.msg import GridMap
 from rclpy.node import Node
 from rclpy.qos import qos_profile_system_default
@@ -55,7 +53,6 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("traversability_input_layer", "inpaint")
         self.declare_parameter("use_cpu", False)
         self.declare_parameter("verbose", False)
-        self.declare_parameter("base_frame", "base_link")
 
         # Cost weights
         self.declare_parameter("weights.slope", 0.4)
@@ -81,11 +78,6 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("filter.support_ratio", 0.75)
         self.declare_parameter("filter.inflation_radius_m", 0.3)
         self.declare_parameter("filter.obstacle_threshold", 0.8)
-
-        # --- TF2 Listener ---
-        self.get_logger().info("Initializing TF2 buffer and listener...")
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
@@ -118,24 +110,6 @@ class GeometricTraversabilityNode(Node):
             self.initialize_filter(msg)
 
         try:
-            # --- Get Transform ---
-            base_frame = self.get_parameter("base_frame").value
-            map_frame = msg.header.frame_id
-            transform = None
-            try:
-                transform = self.tf_buffer.lookup_transform(
-                    base_frame,  # Target frame
-                    map_frame,  # Source frame
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=0.5),
-                )
-            except tf2_ros.TransformException as ex:
-                self.get_logger().error(
-                    f"Could not transform '{map_frame}' to '{base_frame}': {ex}",
-                    throttle_duration_sec=5,
-                )
-                return
-
             # --- 1. Extract and Process Layers ---
             traversability_layer_name = self.get_parameter("traversability_input_layer").value
             if traversability_layer_name not in msg.layers:
@@ -167,7 +141,6 @@ class GeometricTraversabilityNode(Node):
                 cost_map = self.filter.apply_filters(
                     raw_elevation,
                     cost_map,
-                    transform,
                 )
 
             # --- 4. Create point cloud from traversability and elevation data ---
