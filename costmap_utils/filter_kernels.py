@@ -37,6 +37,20 @@ def filter_grid(
 
 
 @wp.kernel
+def count_obstacles_kernel(
+    cost_map: wp.array(dtype=wp.float32, ndim=2),
+    obstacle_threshold: wp.float32,
+    # -- Output ---
+    num_obstacles: wp.array(dtype=wp.int32),
+):
+    r, c = wp.tid()
+    cost_val = cost_map[r, c]
+    if not wp.isnan(cost_val) and cost_val > obstacle_threshold:
+        # Use atomic add to prevent race conditions
+        wp.atomic_add(num_obstacles, 0, 1)
+
+
+@wp.kernel
 def inflate_obstacles_kernel(
     cost_map: wp.array(dtype=wp.float32, ndim=2),
     map_height: wp.int32,

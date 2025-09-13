@@ -55,29 +55,33 @@ class GeometricTraversabilityNode(Node):
         self.declare_parameter("verbose", False)
 
         # Cost weights
-        self.declare_parameter("weights.slope", 0.4)
-        self.declare_parameter("weights.step_height", 0.4)
-        self.declare_parameter("weights.surface_roughness", 0.2)
+        self.declare_parameter("weights.slope", 0.2)
+        self.declare_parameter("weights.step_height", 0.2)
+        self.declare_parameter("weights.surface_roughness", 0.6)
 
         # Pre-processing
-        self.declare_parameter("preprocessing.smoothing_sigma_m", 0.08)
+        self.declare_parameter("preprocessing.smoothing_sigma_m", 0.03)
 
         # Normalization thresholds
-        self.declare_parameter("normalization.max_slope_deg", 70.0)
-        self.declare_parameter("normalization.max_step_height_m", 0.4)
+        self.declare_parameter("normalization.max_slope_deg", 60.0)
+        self.declare_parameter("normalization.max_step_height_m", 0.55)
         self.declare_parameter("normalization.max_roughness_m", 0.2)
 
         # Neighborhood parameters (in meters)
-        self.declare_parameter("neighborhood.step_window_radius_m", 0.1)
-        self.declare_parameter("neighborhood.roughness_window_radius_m", 0.1)
+        self.declare_parameter("neighborhood.step_window_radius_m", 0.15)
+        self.declare_parameter("neighborhood.roughness_window_radius_m", 0.3)
 
         # --- Added parameters for the new GridMapFilter ---
         self.declare_parameter("filter.enabled", True)
         self.declare_parameter("filter.raw_elevation_layer", "elevation")
         self.declare_parameter("filter.support_radius_m", 0.1)
         self.declare_parameter("filter.support_ratio", 0.75)
-        self.declare_parameter("filter.inflation_radius_m", 0.3)
+        self.declare_parameter("filter.inflation_radius_m", 0.4)
         self.declare_parameter("filter.obstacle_threshold", 0.8)
+
+        self.declare_parameter("filter.obstacle_growth_threshold", 2.0)
+        self.declare_parameter("filter.rejection_limit_frames", 5)
+        self.declare_parameter("filter.min_obstacle_baseline", 10)
 
         # --- Subscribers and Publishers ---
         self.input_topic = self.get_parameter("input_topic").value
@@ -195,6 +199,10 @@ class GeometricTraversabilityNode(Node):
         inflation_radius_m = self.get_parameter("filter.inflation_radius_m").value
         obstacle_threshold = self.get_parameter("filter.obstacle_threshold").value
 
+        obstacle_growth_threshold = self.get_parameter("filter.obstacle_growth_threshold").value
+        rejection_limit_frames = self.get_parameter("filter.rejection_limit_frames").value
+        min_obstacle_baseline = self.get_parameter("filter.min_obstacle_baseline").value
+
         self.filter = GridMapFilter(
             device=wp.get_device(),
             verbose=verbose,
@@ -205,6 +213,9 @@ class GeometricTraversabilityNode(Node):
             support_ratio=support_ratio,
             inflation_radius_m=inflation_radius_m,
             obstacle_threshold=obstacle_threshold,
+            obstacle_growth_threshold=obstacle_growth_threshold,
+            rejection_limit_frames=rejection_limit_frames,
+            min_obstacle_baseline=min_obstacle_baseline,
         )
 
         self.get_logger().info(f"GridMapFilter initialized on device '{wp.get_device()}'.")

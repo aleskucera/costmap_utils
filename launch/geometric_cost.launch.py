@@ -50,6 +50,9 @@ def generate_launch_description():
                 "filter.support_ratio": 0.75,  # Required ratio of valid points in the radius
                 "filter.inflation_radius_m": 0.4,  # Radius to check for supporting points
                 "filter.obstacle_threshold": 0.8,  # Required ratio of valid points in the radius
+                "filter.obstacle_growth_threshold": 2.0,
+                "filter.rejection_limit_frames": 5,
+                "filter.min_obstacle_baseline": 10,
             }
         ],
     )
