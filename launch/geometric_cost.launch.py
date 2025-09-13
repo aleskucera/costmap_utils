@@ -36,9 +36,9 @@ def generate_launch_description():
                 "preprocessing.smoothing_sigma_m": 0.03,
                 # --- Normalization Thresholds ---
                 # Values above these thresholds will receive the maximum cost for that metric.
-                "normalization.max_slope_deg": 60.0,
+                "normalization.max_slope_deg": 70.0,
                 "normalization.max_step_height_m": 0.55,
-                "normalization.max_roughness_m": 0.2,
+                "normalization.max_roughness_m": 0.25,
                 # --- Neighborhood Parameters ---
                 "neighborhood.step_window_radius_m": 0.15,
                 "neighborhood.roughness_window_radius_m": 0.3,
@@ -50,9 +50,9 @@ def generate_launch_description():
                 "filter.support_ratio": 0.75,  # Required ratio of valid points in the radius
                 "filter.inflation_radius_m": 0.4,  # Radius to check for supporting points
                 "filter.obstacle_threshold": 0.8,  # Required ratio of valid points in the radius
-                "filter.obstacle_growth_threshold": 2.0,
+                "filter.obstacle_growth_threshold": 1.3,
                 "filter.rejection_limit_frames": 5,
-                "filter.min_obstacle_baseline": 10,
+                "filter.min_obstacle_baseline": 200,
             }
         ],
     )

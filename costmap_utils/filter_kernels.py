@@ -61,7 +61,7 @@ def inflate_obstacles_kernel(
     inflated_cost_map: wp.array(dtype=wp.float32, ndim=2),
 ):
     r, c = wp.tid()
-    inflated_cost = cost_map[r, c]
+    inflated_cost = float(cost_map[r, c])
 
     for dr in range(-inflation_radius, inflation_radius + 1):
         for dc in range(-inflation_radius, inflation_radius + 1):
@@ -70,6 +70,7 @@ def inflate_obstacles_kernel(
             if nr >= 0 and nr < map_height and nc >= 0 and nc < map_width:
                 cost_val = cost_map[nr, nc]
                 if not wp.isnan(cost_val) and cost_val > obstacle_threshold:
-                    inflated_cost = 1000.0
+                    if cost_val > inflated_cost:
+                        inflated_cost = cost_val
 
     inflated_cost_map[r, c] = inflated_cost
