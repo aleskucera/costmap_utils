@@ -3,13 +3,13 @@ import math
 import numpy as np
 import warp as wp
 
-from .geometric_traversability_kernels import apply_gaussian_blur_kernel
-from .geometric_traversability_kernels import combine_costs_kernel
-from .geometric_traversability_kernels import compute_roughness_kernel
-from .geometric_traversability_kernels import compute_slope_sobel_kernel
-from .geometric_traversability_kernels import compute_step_height_cost_kernel
-from .geometric_traversability_kernels import morph_op_kernel
-from .grid_utils import meters_to_cells
+from geometric_traversability_kernels import apply_gaussian_blur_kernel
+from geometric_traversability_kernels import combine_costs_kernel
+from geometric_traversability_kernels import compute_roughness_kernel
+from geometric_traversability_kernels import compute_slope_sobel_kernel
+from geometric_traversability_kernels import compute_step_height_cost_kernel
+from geometric_traversability_kernels import morph_op_kernel
+from grid_utils import meters_to_cells
 
 
 def gaussian_kernel(sigma_m: float, grid_resolution: float, device):
