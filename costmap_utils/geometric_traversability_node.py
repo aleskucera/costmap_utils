@@ -11,10 +11,10 @@ from rclpy.qos import qos_profile_system_default
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import PointField
 
-from .geometric_traversability_analyzer import GeometricTraversabilityAnalyzer
-from .grid_map_filter import GridMapFilter
-from .grid_utils import extract_layer
-from .grid_utils import meters_to_cells
+from geometric_traversability_analyzer import GeometricTraversabilityAnalyzer
+from grid_map_filter import GridMapFilter
+from grid_utils import extract_layer
+from grid_utils import meters_to_cells
 
 
 def create_traversability_cloud_data(
@@ -48,9 +48,9 @@ class GeometricTraversabilityNode(Node):
         super().__init__("geometric_traversability_node")
 
         # --- Parameters for Configuration ---
-        self.declare_parameter("input_topic", "/elevation_mapping_node/elevation_map_filter")
+        self.declare_parameter("input_topic", "/elevation_map") #")
         self.declare_parameter("output_topic", "/geometric_traversability_cloud")
-        self.declare_parameter("traversability_input_layer", "inpaint")
+        self.declare_parameter("traversability_input_layer", "elevation") # tohle bude asi blbnout, pred tim tu byl inpaint...
         self.declare_parameter("use_cpu", False)
         self.declare_parameter("verbose", False)
 
@@ -155,6 +155,17 @@ class GeometricTraversabilityNode(Node):
                 msg.info.pose.position.y,
                 msg.info.resolution,
             )
+
+            self.get_logger().info(
+                f"cols {(cost_map.shape[0] * msg.info.resolution) / 2.0}"
+            )
+
+            self.get_logger().info(
+                f"cost map {cost_map[0:5,0:5]}"
+            )
+
+            self.get_logger().error(
+                        f"x '{msg.info.pose.position.x}' y '{msg.info.pose.position.y}' resolution {msg.info.resolution}")
 
             # --- 5. Publish PointCloud2 message ---
             cloud_msg = self.create_point_cloud_msg(points, msg.header.frame_id)

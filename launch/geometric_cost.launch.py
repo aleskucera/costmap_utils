@@ -21,9 +21,9 @@ def generate_launch_description():
         parameters=[
             {
                 # --- Main Configuration ---
-                "input_topic": "/elevation_mapping_node/elevation_map_filter",
+                "input_topic": "/elevation_map_raw_post", #"/elevation_map_raw_post",
                 "output_topic": "/geometric_traversability_cloud",
-                "traversability_input_layer": "inpaint",  # Layer from GridMap to use for analysis
+                "traversability_input_layer": "elevation_inpainted",  # Layer from GridMap to use for analysis
                 "use_cpu": False,  # Set to True to force CPU execution, otherwise uses GPU if available
                 "verbose": False,  # Set to True for extra debug prints from the analyzer
                 # --- Cost Function Weights ---
@@ -44,7 +44,7 @@ def generate_launch_description():
                 "neighborhood.roughness_window_radius_m": 0.3,
                 # --- Reliability Filter ---
                 # This filter can invalidate costs in areas with sparse raw elevation data.
-                "filter.enabled": True,
+                "filter.enabled": False,
                 "filter.raw_elevation_layer": "elevation",  # The unfiltered elevation layer
                 "filter.support_radius_m": 0.1,  # Radius to check for supporting points
                 "filter.support_ratio": 0.75,  # Required ratio of valid points in the radius

@@ -1,10 +1,10 @@
 import numpy as np
 import warp as wp
 
-from .filter_kernels import count_obstacles_kernel
-from .filter_kernels import filter_grid
-from .filter_kernels import inflate_obstacles_kernel
-from .grid_utils import meters_to_cells
+from filter_kernels import count_obstacles_kernel
+from filter_kernels import filter_grid
+from filter_kernels import inflate_obstacles_kernel
+from grid_utils import meters_to_cells
 
 
 class GridMapFilter:
